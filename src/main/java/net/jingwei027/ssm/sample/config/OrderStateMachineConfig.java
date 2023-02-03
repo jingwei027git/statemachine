@@ -1,6 +1,7 @@
 package net.jingwei027.ssm.sample.config;
 
 import static net.jingwei027.ssm.sample.consts.OrderEvents.E1;
+import static net.jingwei027.ssm.sample.consts.OrderEvents.E2;
 import static net.jingwei027.ssm.sample.consts.OrderEvents.E3;
 import static net.jingwei027.ssm.sample.consts.OrderStates.S1;
 import static net.jingwei027.ssm.sample.consts.OrderStates.S2;
@@ -19,7 +20,6 @@ import org.springframework.statemachine.config.builders.StateMachineStateConfigu
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 
 import lombok.extern.slf4j.Slf4j;
-import net.jingwei027.ssm.sample.OrderStateMachineListener;
 import net.jingwei027.ssm.sample.consts.OrderEvents;
 import net.jingwei027.ssm.sample.consts.OrderStates;
 
@@ -30,9 +30,6 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
 
     @Override
     public void configure(StateMachineConfigurationConfigurer<OrderStates, OrderEvents> config) throws Exception {
-        config
-                .withConfiguration()
-                .listener(new OrderStateMachineListener());
     }
 
     @Override
@@ -40,8 +37,7 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
         states
                 .withStates()
                 .initial(S1)
-                .junction(S2)
-                .state(S3)
+                .choice(S2)
                 .end(S4)
                 .states(EnumSet.allOf(OrderStates.class))
                 ;
@@ -54,26 +50,40 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                     .source(S1)
                     .target(S2)
                     .event(E1)
-                    .action(action -> {
-                        log.info("ACTION S1-S2(E1)");
-                    })
+                    .action(c -> log.info("ACTION S1-S2(E1)"))
+                    .and()
+                .withExternal()
+                    .source(S1)
+                    .target(S4)
+                    .event(E2)
+                    .action(c -> log.info("ACTION S1-S4(E2)"))
                     .and()
                 .withChoice()
                     .source(S2)
-                    .first(S2A, context -> false, action -> {
-                        log.info("ACTION S2-S2A");
-                    })
-                    .then(S2B, context -> false, action -> {
-                        log.info("ACTION S2-S2B");
-                    })
-                    .last(S3, action -> {
-                        log.info("ACTION S2-S3");
-                    })
+                    .first(S2A,
+                        c -> false,
+                        c -> log.info("ACTION S2-S2A (true)"))
+                    .then(S2B,
+                        c -> true,
+                        c -> log.info("ACTION S2-S2B (true)"))
+                    .last(S3,
+                        c -> log.info("ACTION S2-S3 (true)"))
+                    .and()
+                .withExternal()
+                    .source(S2A)
+                    .target(S4)
+                    .action(c -> log.info("ACTION S2A-S4"))
+                    .and()
+                .withExternal()
+                    .source(S2B)
+                    .target(S1)
+                    .action(c -> log.info("ACTION S2B-S1"))
                     .and()
                 .withExternal()
                     .source(S3)
                     .target(S4)
                     .event(E3)
+                    .action(c -> log.info("ACTION S3-S4"))
                 ;
     }
 
