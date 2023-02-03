@@ -51,7 +51,7 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
                     .target(S2)
                     .event(E1)
                     .action(
-                        c -> { log.info("ACTION S1-S2(E1)"); throw new RuntimeException("S1-S2(E1) failure"); },
+                        c -> { log.info("ACTION S1-S2(E1)"); /* throw new RuntimeException("S1-S2(E1) failure"); */ },
                         c -> { log.error("ACTION S1-S2(E1): " + c.getException().getMessage()); }) // handle transition action exception
                     .and()
                 .withExternal()
