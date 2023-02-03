@@ -21,6 +21,12 @@ public class OrderStateMachineInterceptor extends StateMachineInterceptorAdapter
     private final OrderPersistService orderPersistService;
     
     @Override
+    public Message<OrderEvents> preEvent(Message<OrderEvents> message, StateMachine<OrderStates, OrderEvents> stateMachine) {
+        log.info("preEvent {}", message.getPayload());
+        return message;
+    }
+    
+    @Override
     public void preStateChange(
         State<OrderStates, OrderEvents> state,
         Message<OrderEvents> message,

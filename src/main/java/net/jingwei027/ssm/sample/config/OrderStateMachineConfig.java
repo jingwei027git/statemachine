@@ -1,16 +1,5 @@
 package net.jingwei027.ssm.sample.config;
 
-import static net.jingwei027.ssm.sample.consts.OrderEvents.E1;
-import static net.jingwei027.ssm.sample.consts.OrderEvents.E3;
-import static net.jingwei027.ssm.sample.consts.OrderStates.S1;
-import static net.jingwei027.ssm.sample.consts.OrderStates.S2;
-import static net.jingwei027.ssm.sample.consts.OrderStates.S2A;
-import static net.jingwei027.ssm.sample.consts.OrderStates.S2B;
-import static net.jingwei027.ssm.sample.consts.OrderStates.S3;
-import static net.jingwei027.ssm.sample.consts.OrderStates.S4;
-
-import java.util.EnumSet;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.EnumStateMachineConfigurerAdapter;
@@ -19,7 +8,6 @@ import org.springframework.statemachine.config.builders.StateMachineStateConfigu
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 
 import lombok.extern.slf4j.Slf4j;
-import net.jingwei027.ssm.sample.OrderStateMachineListener;
 import net.jingwei027.ssm.sample.consts.OrderEvents;
 import net.jingwei027.ssm.sample.consts.OrderStates;
 
@@ -32,49 +20,55 @@ public class OrderStateMachineConfig extends EnumStateMachineConfigurerAdapter<O
     public void configure(StateMachineConfigurationConfigurer<OrderStates, OrderEvents> config) throws Exception {
         config
                 .withConfiguration()
-                .listener(new OrderStateMachineListener());
+                ;
     }
 
     @Override
     public void configure(StateMachineStateConfigurer<OrderStates, OrderEvents> states) throws Exception {
         states
-                .withStates()
-                .initial(S1)
-                .junction(S2)
-                .state(S3)
-                .end(S4)
-                .states(EnumSet.allOf(OrderStates.class))
-                ;
+        .withStates()
+            .initial(OrderStates.READY, (context) -> log.info("READ initial"))
+            .state(OrderStates.DEPLOY, (context) -> log.info("DEPLOY entry"), (context) -> log.info("DEPLOY exit"))
+            .state(OrderStates.DONE, (context) -> log.info("DONE entry"), (context) -> log.info("DONE exit"))
+            .end(OrderStates.DONE)
+            .and()
+            .withStates()
+                .parent(OrderStates.DEPLOY)
+                .initial(OrderStates.DEPLOYPREPARE, (context) -> log.info("REPLOYPREPARE initial"))
+                .state(OrderStates.DEPLOYPREPARE, (context) -> log.info("DEPLOYPREPARE entry"), (context) -> log.info("DEPLOYPREPARE exit"))
+                .state(OrderStates.DEPLOYEXECUTE, (context) -> log.info("DEPLOYEXECUTE entry"), (context) -> log.info("DEPLOYEXECUTE exit"));
     }
 
     @Override
     public void configure(StateMachineTransitionConfigurer<OrderStates, OrderEvents> transitions) throws Exception {
         transitions
-                .withExternal()
-                    .source(S1)
-                    .target(S2)
-                    .event(E1)
-                    .action(action -> {
-                        log.info("ACTION S1-S2(E1)");
-                    })
-                    .and()
-                .withChoice()
-                    .source(S2)
-                    .first(S2A, context -> false, action -> {
-                        log.info("ACTION S2-S2A");
-                    })
-                    .then(S2B, context -> false, action -> {
-                        log.info("ACTION S2-S2B");
-                    })
-                    .last(S3, action -> {
-                        log.info("ACTION S2-S3");
-                    })
-                    .and()
-                .withExternal()
-                    .source(S3)
-                    .target(S4)
-                    .event(E3)
-                ;
+        .withExternal()
+            .source(OrderStates.READY).target(OrderStates.DEPLOY)
+            .event(OrderEvents.DEPLOY)
+            .action(action -> log.info("001 ready to deploy (deploy)"))
+            .and()
+        .withExternal()
+            .source(OrderStates.DEPLOYPREPARE)
+            .target(OrderStates.DEPLOYEXECUTE)
+            .action(action -> log.info("002 prepare to execute (auto)"))
+            .and()
+        .withExternal()
+            .source(OrderStates.DEPLOYEXECUTE)
+            .target(OrderStates.READY)
+            .action(action -> log.info("003 execute to ready (auto)"))
+            .and()
+        .withExternal()
+            .source(OrderStates.READY)
+            .target(OrderStates.DONE)
+            .event(OrderEvents.DONE)
+            .action(action -> log.info("00A ready to done (done)"))
+            .and()
+        .withExternal()
+            .source(OrderStates.DEPLOY)
+            .target(OrderStates.DONE)
+            .event(OrderEvents.DONE)
+            .action(action -> log.info("00B deploy to done (done)"))
+        ;
     }
 
 }

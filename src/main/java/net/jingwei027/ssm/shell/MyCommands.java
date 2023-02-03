@@ -34,7 +34,7 @@ public class MyCommands {
         var order = new OrderInvoice();
             order.setCreateTime(LocalDateTime.now());
             order.setUpdateTime(LocalDateTime.now());
-            order.setState(OrderStates.S1.name());
+            order.setState(OrderStates.READY.name());
             
         orderRepo.save(order);
         
